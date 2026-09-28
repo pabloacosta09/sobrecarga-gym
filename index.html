@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gimnasio — Sobrecarga Progresiva</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --text:#1a1a2e; --sub:#6b7280; --border:#e5e7eb;
+  --accent:#1f4e78; --accent2:#2563eb; --yellow:#fff3cd; --green:#16a34a; --blue:#2563eb;
+  --amber:#ca8a04; --gray:#9ca3af;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111318; --card:#1b1e26; --text:#eef0f3; --sub:#9aa3af; --border:#2a2e37; --yellow:#3a3320;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111318; --card:#1b1e26; --text:#eef0f3; --sub:#9aa3af; --border:#2a2e37; --yellow:#3a3320;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+header{position:sticky;top:0;top:env(safe-area-inset-top,0px);background:var(--accent);color:#fff;padding:14px 16px;z-index:5;}
+header h1{margin:0;font-size:17px;font-weight:700;}
+nav{display:flex;gap:6px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:4;overflow-x:auto;}
+nav button{border:none;background:var(--bg);color:var(--text);padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;}
+nav button.active{background:var(--accent2);color:#fff;}
+main{max-width:720px;margin:0 auto;padding:14px;padding-bottom:60px;}
+.day-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.day-tabs button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:600;cursor:pointer;}
+.day-tabs button.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+.card h3{margin:0 0 2px;font-size:15px;}
+.card .meta{font-size:12px;color:var(--sub);margin-bottom:8px;}
+.sets{display:flex;flex-direction:column;gap:6px;}
+.setrow{display:flex;gap:6px;align-items:center;}
+.setrow span{width:20px;font-size:12px;color:var(--sub);}
+.setrow input{flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;}
+.setrow label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--sub);white-space:nowrap;}
+.rowline{display:flex;gap:6px;margin-top:6px;}
+.rowline input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;}
+.savebtn{margin-top:10px;width:100%;padding:10px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;cursor:pointer;}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;margin-left:6px;}
+.status-row{display:flex;justify-content:space-between;align-items:center;}
+.hist-detail{font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5;}
+.cfg-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.cfg-row input{width:80px;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);text-align:right;}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+.small{font-size:12px;color:var(--sub);}
+.section-title{font-weight:700;font-size:13px;color:var(--sub);text-transform:uppercase;letter-spacing:.03em;margin:14px 0 8px;}
+</style>
+</head>
+<body>
+<header><h1>🏋️ Sobrecarga Progresiva</h1></header>
+<nav id="mainNav"></nav>
+<main id="main"></main>
+<div class="toast" id="toast"></div>
+
+<script>
+const ROUTINE = [
+{dia:"Día 1",n:1,ej:"Tirón al mentón con barra",tipo:"Fijo",series:2,obj:"2x6",targets:[6,6,6,6]},
+{dia:"Día 1",n:2,ej:"Cargada",tipo:"Fijo",series:2,obj:"2x6",targets:[6,6,6,6]},
+{dia:"Día 1",n:3,ej:"Excéntrica con peso + salto",tipo:"Combo",series:2,obj:"2x5 (combo)",targets:[5,5,5,5]},
+{dia:"Día 1",n:4,ej:"Sentadilla hexagonal",tipo:"Fijo",series:2,obj:"2x8",targets:[8,8,8,8]},
+{dia:"Día 1",n:5,ej:"Salto desde sentado",tipo:"Fijo",series:2,obj:"2x6",targets:[6,6,6,6]},
+{dia:"Día 1",n:6,ej:"Press de banco plano",tipo:"Descendente",series:4,obj:"8-8-6-6",targets:[8,8,6,6]},
+{dia:"Día 1",n:7,ej:"Cruce de polea parado",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 12)",targets:[12,12,12,12]},
+{dia:"Día 1",n:8,ej:"Press francés",tipo:"Fijo",series:4,obj:"4x8",targets:[8,8,8,8]},
+{dia:"Día 1",n:9,ej:"Vuelos laterales en polea",tipo:"Fijo",series:4,obj:"4x10",targets:[10,10,10,10]},
+{dia:"Día 1",n:10,ej:"Press militar",tipo:"Fijo",series:4,obj:"4x10",targets:[10,10,10,10]},
+{dia:"Día 2",n:1,ej:"Arranque a 1 brazo",tipo:"Fijo",series:2,obj:"2x6",targets:[6,6,6,6]},
+{dia:"Día 2",n:2,ej:"Peso muerto",tipo:"Fijo",series:2,obj:"2x8",targets:[8,8,8,8]},
+{dia:"Día 2",n:3,ej:"Isométrico de elevación de cadera",tipo:"Isométrico",series:1,obj:"15 segundos",targets:[15,15,15,15]},
+{dia:"Día 2",n:4,ej:"Jalón al pecho",tipo:"Descendente",series:4,obj:"10-10-8-8",targets:[10,10,8,8]},
+{dia:"Día 2",n:5,ej:"Remo en T",tipo:"Descendente",series:4,obj:"12-12-10-10",targets:[12,12,10,10]},
+{dia:"Día 2",n:6,ej:"Bíceps colgado",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 12)",targets:[12,12,12,12]},
+{dia:"Día 2",n:7,ej:"Bíceps Scott",tipo:"Fijo",series:4,obj:"4x12",targets:[12,12,12,12]},
+{dia:"Día 2",n:8,ej:"Curl bayesiano",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 8)",targets:[8,8,8,8]},
+{dia:"Día 3",n:1,ej:"2º tiempo tijera",tipo:"Fijo",series:2,obj:"2x6",targets:[6,6,6,6]},
+{dia:"Día 3",n:2,ej:"Hip thrust",tipo:"Fijo",series:3,obj:"3x8",targets:[8,8,8,8]},
+{dia:"Día 3",n:3,ej:"Pullover en polea",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 12)",targets:[12,12,12,12]},
+{dia:"Día 3",n:4,ej:"Jalón dorsal a 1 brazo",tipo:"Descendente",series:4,obj:"10-10-8-8",targets:[10,10,8,8]},
+{dia:"Día 3",n:5,ej:"Tríceps unilateral en polea",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 10)",targets:[10,10,10,10]},
+{dia:"Día 3",n:6,ej:"Elevación lateral en polea",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 10)",targets:[10,10,10,10]},
+{dia:"Día 3",n:7,ej:"Curl colgado martillo",tipo:"Fallo",series:4,obj:"4 series + fallo (ref. 8)",targets:[8,8,8,8]},
+];
+const DIAS = ["Día 1","Día 2","Día 3"];
+let tab = "hoy", selDia = "Día 1";
+
+function load(k, d){ try{ const v = localStorage.getItem(k); return v? JSON.parse(v): d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function getLogs(){ return load('gym_logs', []); }
+function getConfig(){ return load('gym_config', {increments:{}, umbralFallo:4, margenIso:5}); }
+function setConfig(c){ save('gym_config', c); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+function computeStatus(ex){
+  const logs = getLogs().filter(l=>l.ej===ex.ej);
+  if(!logs.length) return {icon:'⚪', label:'Sin datos suficientes', next:'', last:null};
+  const dates = [...new Set(logs.map(l=>l.fecha))].sort();
+  const lastDate = dates[dates.length-1];
+  const prevDate = dates.length>1? dates[dates.length-2]: null;
+  const lastSets = logs.filter(l=>l.fecha===lastDate).sort((a,b)=>a.serie-b.serie);
+  const prevSets = prevDate? logs.filter(l=>l.fecha===prevDate): [];
+  const lastWeight = lastSets.reduce((m,s)=>Math.max(m, s.peso||0), 0);
+  const prevWeight = prevSets.length? prevSets.reduce((m,s)=>Math.max(m, s.peso||0), 0): null;
+  const cfg = getConfig();
+  const inc = cfg.increments[ex.ej];
+  const incTxt = (inc!==undefined && inc!=='' && !isNaN(inc)) ? `${lastWeight + Number(inc)} kg` : 'Definí el incremento en Configuración';
+
+  if(ex.tipo === 'Isométrico'){
+    const segLast = lastSets[0]?.segundos || 0;
+    const segPrev = prevSets[0]?.segundos || 0;
+    const target = ex.targets[0] + Number(cfg.margenIso||0);
+    let icon='🟡', label='Mantener, buscar más segundos', next=`Superar ${ex.targets[0]} seg`;
+    if(segLast >= target){ icon='🟢'; label='Aumentar dificultad/peso'; next=`Superar ${target} seg`; }
+    else if(prevDate && segLast > segPrev){ icon='🔵'; label='Mantener y consolidar'; next=`${segLast} seg (mantener)`; }
+    return {icon,label,next,last:{fecha:lastDate,peso:lastWeight,detalle:`${segLast} seg`}};
+  }
+  if(ex.tipo === 'Fallo'){
+    const totalLast = lastSets.reduce((s,x)=>s+(x.reps||0),0);
+    const totalPrev = prevSets.reduce((s,x)=>s+(x.reps||0),0);
+    let icon='🟡', label='Mantener peso, sumar reps totales', next=`${lastWeight} kg (mantener)`;
+    if(prevDate && lastWeight===prevWeight && (totalLast-totalPrev) >= Number(cfg.umbralFallo||0)){ icon='🟢'; label='Subir peso'; next=incTxt; }
+    else if(prevDate && lastWeight>prevWeight){ icon='🔵'; label='Mantener y consolidar'; }
+    return {icon,label,next,last:{fecha:lastDate,peso:lastWeight,detalle:`${totalLast} reps totales`}};
+  }
+  // Fijo / Descendente / Combo
+  const cumplio = ex.targets.slice(0,ex.series).every((t,i)=>(lastSets[i]?.reps||0) >= t);
+  let icon='🟡', label='Mantener peso, buscar más repeticiones', next=`${lastWeight} kg (mantener)`;
+  if(cumplio){ icon='🟢'; label='Subir peso'; next=incTxt; }
+  else if(prevDate && lastWeight>prevWeight){ icon='🔵'; label='Mantener y consolidar'; }
+  const detalle = lastSets.map(s=>s.reps).join('/');
+  return {icon,label,next,last:{fecha:lastDate,peso:lastWeight,detalle:`${detalle} reps`}};
+}
+
+function renderNav(){
+  const nav = document.getElementById('mainNav');
+  nav.innerHTML = ['hoy','historial','config'].map(t=>
+    `<button data-tab="${t}" class="${tab===t?'active':''}">${t==='hoy'?'Hoy':t==='historial'?'Historial':'Configuración'}</button>`
+  ).join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab; render();});
+}
+
+function renderHoy(){
+  const exs = ROUTINE.filter(e=>e.dia===selDia);
+  let html = `<div class="day-tabs">${DIAS.map(d=>`<button data-d="${d}" class="${d===selDia?'active':''}">${d}</button>`).join('')}</div>`;
+  exs.forEach(ex=>{
+    const isIso = ex.tipo==='Isométrico';
+    const isFallo = ex.tipo==='Fallo';
+    html += `<div class="card" data-ej="${ex.ej}">
+      <h3>${ex.n}. ${ex.ej}</h3>
+      <div class="meta">${ex.tipo} · Objetivo: ${ex.obj}</div>
+      <div class="sets">`;
+    for(let s=1; s<=ex.series; s++){
+      html += `<div class="setrow"><span>S${s}</span>
+        <input type="number" inputmode="decimal" placeholder="${isIso?'':'kg'}" class="peso" ${isIso?'style="display:none"':''}>
+        <input type="number" inputmode="numeric" placeholder="${isIso?'segundos':'reps'}" class="reps">
+        ${isFallo?'<label><input type="checkbox" class="fallo"> fallo</label>':''}
+      </div>`;
+    }
+    html += `</div>
+      <div class="rowline"><input type="number" step="0.5" class="rir" placeholder="RIR/RPE (opcional)"><input type="text" class="obs" placeholder="Observaciones"></div>
+      <button class="savebtn">Guardar entrenamiento</button>
+    </div>`;
+  });
+  document.getElementById('main').innerHTML = html;
+  document.querySelectorAll('.day-tabs button').forEach(b=>b.onclick=()=>{selDia=b.dataset.d; render();});
+  document.querySelectorAll('.card').forEach(card=>{
+    card.querySelector('.savebtn').onclick=()=>{
+      const ej = card.dataset.ej;
+      const rows = card.querySelectorAll('.setrow');
+      const rir = card.querySelector('.rir').value;
+      const obs = card.querySelector('.obs').value;
+      const fecha = todayStr();
+      const logs = getLogs();
+      const isIso = ROUTINE.find(e=>e.ej===ej).tipo==='Isométrico';
+      let any=false;
+      rows.forEach((row,i)=>{
+        const peso = parseFloat(row.querySelector('.peso').value)||null;
+        const reps = parseFloat(row.querySelector('.reps').value)||null;
+        const falloEl = row.querySelector('.fallo');
+        if(reps!==null || peso!==null){
+          any=true;
+          logs.push({
+            fecha, ej, serie:i+1,
+            peso: isIso? null: peso,
+            reps: isIso? null: reps,
+            segundos: isIso? reps: null,
+            fallo: falloEl? falloEl.checked: false,
+            rir: rir? parseFloat(rir): null,
+            obs: obs||''
+          });
+        }
+      });
+      if(!any){ toast('Cargá al menos una serie'); return; }
+      save('gym_logs', logs);
+      toast('Entrenamiento guardado ✓');
+      card.querySelectorAll('input[type=number]').forEach(i=>i.value='');
+      card.querySelectorAll('input[type=checkbox]').forEach(i=>i.checked=false);
+      card.querySelector('.obs').value='';
+    };
+  });
+}
+
+function renderHistorial(){
+  let html = '';
+  DIAS.forEach(d=>{
+    html += `<div class="section-title">${d}</div>`;
+    ROUTINE.filter(e=>e.dia===d).forEach(ex=>{
+      const st = computeStatus(ex);
+      const colorMap = {'🟢':'var(--green)','🟡':'var(--amber)','🔵':'var(--blue)','⚪':'var(--gray)'};
+      html += `<div class="card">
+        <div class="status-row">
+          <h3>${ex.ej}</h3>
+          <span class="badge" style="background:${colorMap[st.icon]};color:#fff">${st.icon}</span>
+        </div>
+        <div class="meta">${ex.tipo} · Objetivo: ${ex.obj}</div>
+        <div class="hist-detail">
+          ${st.last? `Último: ${st.last.fecha} — ${st.last.peso?st.last.peso+' kg — ':''}${st.last.detalle}<br>`: ''}
+          <b>${st.label}</b>${st.next? ' → '+st.next: ''}
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('main').innerHTML = html;
+}
+
+function renderConfig(){
+  const cfg = getConfig();
+  let html = `<div class="section-title">Parámetros generales</div>
+    <div class="card">
+      <div class="cfg-row"><span class="small">Umbral de mejora en "+ fallo" (reps totales de más vs. sesión anterior)</span><input type="number" id="umbralFallo" value="${cfg.umbralFallo}"></div>
+      <div class="cfg-row"><span class="small">Margen en segundos (isométricos)</span><input type="number" id="margenIso" value="${cfg.margenIso}"></div>
+    </div>
+    <div class="section-title">Incremento de peso por ejercicio (kg)</div>
+    <div class="card">`;
+  ROUTINE.forEach(ex=>{
+    const v = cfg.increments[ex.ej];
+    html += `<div class="cfg-row"><span class="small">${ex.ej}</span><input type="number" step="0.5" class="inc" data-ej="${ex.ej}" value="${v!==undefined?v:''}"></div>`;
+  });
+  html += `</div><button class="savebtn" id="saveCfg">Guardar configuración</button>
+  <p class="small" style="margin-top:14px">Los datos se guardan solo en este navegador/dispositivo. Si cambiás de celular o borrás datos del navegador, se pierden.</p>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('saveCfg').onclick=()=>{
+    const c = getConfig();
+    c.umbralFallo = parseFloat(document.getElementById('umbralFallo').value)||0;
+    c.margenIso = parseFloat(document.getElementById('margenIso').value)||0;
+    document.querySelectorAll('.inc').forEach(i=>{
+      if(i.value!=='') c.increments[i.dataset.ej] = parseFloat(i.value);
+      else delete c.increments[i.dataset.ej];
+    });
+    setConfig(c);
+    toast('Configuración guardada ✓');
+  };
+}
+
+function render(){
+  renderNav();
+  if(tab==='hoy') renderHoy();
+  else if(tab==='historial') renderHistorial();
+  else renderConfig();
+}
+render();
+</script>
+</body>
+</html>
